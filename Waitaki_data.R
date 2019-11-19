@@ -5,10 +5,14 @@ rm(list=ls())
 ################
 
 nz_dir <- "/home/merrill/stream_network_NZ"
+sub_dir <- file.path(nz_dir, "Waitaki")
+dir.create(sub_dir, showWarnings = FALSE)
 
 data_dir <- file.path(nz_dir, "data")
+data_dir2 <- file.path(sub_dir, "data")
+dir.create(data_dir2, showWarnings = FALSE)
 
-fig_dir <- file.path(nz_dir, "figures")
+fig_dir <- file.path(sub_dir, "figures")
 dir.create(fig_dir, showWarnings=FALSE)
 
 #################
@@ -187,9 +191,9 @@ all(check == FALSE)
 hab_sub3 <- do.call(rbind, hab_sub3)
 
 
-saveRDS(obs_sub, file.path(data_dir, "Waitaki_observations.rds"))
-saveRDS(network_sub, file.path(data_dir, "Waitaki_network.rds"))
-saveRDS(hab_sub3, file.path(data_dir, "Waitaki_habitat.rds"))
+saveRDS(obs_sub, file.path(data_dir2, "Waitaki_observations.rds"))
+saveRDS(network_sub, file.path(data_dir2, "Waitaki_network.rds"))
+saveRDS(hab_sub3, file.path(data_dir2, "Waitaki_habitat.rds"))
 
 
 ## save rda
@@ -197,13 +201,13 @@ nz_waitaki_longfin_eel <- list()
 nz_waitaki_longfin_eel$observations <- obs_sub
 nz_waitaki_longfin_eel$network <- network_sub
 nz_waitaki_longfin_eel$habitat <- hab_sub3
-save(nz_waitaki_longfin_eel, file=file.path(data_dir, "nz_waitaki_longfin_eel.rda"))
+save(nz_waitaki_longfin_eel, file=file.path(data_dir2, "nz_waitaki_longfin_eel.rda"))
 
 
 
-obs_sub <- readRDS(file.path(data_dir, "Waitaki_observations.rds"))
-network_sub <- readRDS(file.path(data_dir, "Waitaki_network.rds"))
-hab_sub <- readRDS(file.path(data_dir, "Waitaki_habitat.rds"))
+obs_sub <- readRDS(file.path(data_dir2, "Waitaki_observations.rds"))
+network_sub <- readRDS(file.path(data_dir2, "Waitaki_network.rds"))
+hab_sub <- readRDS(file.path(data_dir2, "Waitaki_habitat.rds"))
 
 catchmap <- ggplot() +
 		geom_point(data=network_sub, aes(x = long, y = lat), col="gray") +
