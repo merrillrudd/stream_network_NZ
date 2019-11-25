@@ -4,11 +4,15 @@ rm(list=ls())
 ## Directories
 ################
 
-nz_dir <- "C:\\merrill\\stream_network_NZ"
+nz_dir <- "/home/merrill/stream_network_NZ"
+sub_dir <- file.path(nz_dir, "Waikato")
+dir.create(sub_dir, showWarnings = FALSE)
 
 data_dir <- file.path(nz_dir, "data")
+data_dir2 <- file.path(sub_dir, "data")
+dir.create(data_dir2, showWarnings = FALSE)
 
-fig_dir <- file.path(nz_dir, "figures")
+fig_dir <- file.path(sub_dir, "figures")
 dir.create(fig_dir, showWarnings=FALSE)
 
 #################
@@ -17,7 +21,7 @@ dir.create(fig_dir, showWarnings=FALSE)
 
 library(tidyverse)
 library(proj4)
-library(RuddR)
+library(akima)
 
 # ################
 ## Load data
@@ -38,12 +42,8 @@ all(obs_sub$nzsegment %in% network_sub$nzsegment)
 # obs_sub <- obs_sub %>% filter(nzsegment %in% network_sub$nzsegment == TRUE)
 hab_sub <- habfull %>% filter(child_s %in% network_sub$child_s == TRUE)
 covar <- unique(hab_sub$covariate)
-covar_toUse <- c('MeanFlowCumecs','Dist2Coast_FromMid','loc_elev','loc_slope','loc_rnvar',"local_twarm",'width','DamAffected')
+covar_toUse <- c('MeanFlowCumecs','Dist2Coast_FromMid','loc_elev','loc_slope','loc_rnvar',"local_twarm",'DamAffected')
 all(covar_toUse %in% covar)
-
-dam <- hab_sub %>% filter(covariate == "DamAffected")
-ggplot(dam) +
-geom_point(aes(x = easting, y = northing, color = value))
 
 #############################
 ## format
@@ -202,12 +202,11 @@ check <- sapply(1:length(hab_sub3), function(x) any(hab_sub3[[x]]$value == 0))
 all(check == FALSE)
 hab_sub3 <- do.call(rbind, hab_sub3)
 
-saveRDS(obs_sub, file.path(data_dir, "Waikato_observations.rds"))
-saveRDS(network_sub, file.path(data_dir, "Waikato_network.rds"))
-saveRDS(hab_sub3, file.path(data_dir, "Waikato_habitat.rds"))
+saveRDS(obs_sub, file.path(data_dir2, "Waikato_observations.rds"))
+saveRDS(network_sub, file.path(data_dir2, "Waikato_network.rds"))
+saveRDS(hab_sub3, file.path(data_dir2, "Waikato_habitat.rds"))
 
 
-data_dir2 <- file.path(nz_dir, "data_save")
 ## save rda
 nz_waikato_longfin_eel <- list()
 nz_waikato_longfin_eel$observations <- obs_sub
@@ -217,18 +216,18 @@ save(nz_waikato_longfin_eel, file=file.path(data_dir2, "nz_waikato_longfin_eel.r
 
 
 
-obs_sub <- readRDS(file.path(data_dir, "Waikato_observations.rds"))
-network_sub <- readRDS(file.path(data_dir, "Waikato_network.rds"))
-hab_sub <- readRDS(file.path(data_dir, "Waikato_habitat.rds"))
+obs_sub <- readRDS(file.path(data_dir2, "Waikato_observations.rds"))
+network_sub <- readRDS(file.path(data_dir2, "Waikato_network.rds"))
+hab_sub <- readRDS(file.path(data_dir2, "Waikato_habitat.rds"))
 
-catchmap <- ggplot() +
-		geom_point(data=network_sub, aes(x = long, y = lat), col="gray") +
-		geom_point(data=obs_sub, aes(x = long, y = lat, fill = data_type), pch=22, alpha=0.6) +
-		scale_fill_brewer(palette = "Set1") +
-		xlab("Longitude") + ylab("Latitude") +
-		# guides(fill = FALSE) +
-		mytheme()
-ggsave(file.path(fig_dir, "Waikato_map.png"), catchmap)
+# catchmap <- ggplot() +
+# 		geom_point(data=network_sub, aes(x = long, y = lat), col="gray") +
+# 		geom_point(data=obs_sub, aes(x = long, y = lat, fill = data_type), pch=22, alpha=0.6) +
+# 		scale_fill_brewer(palette = "Set1") +
+# 		xlab("Longitude") + ylab("Latitude") +
+# 		# guides(fill = FALSE) +
+# 		mytheme()
+# ggsave(file.path(fig_dir, "Waikato_map.png"), catchmap)
 
 catchmap2 <- ggplot() +
 		geom_point(data=netfull, aes(x = long, y = lat), col = "black", cex=0.2) +
@@ -236,187 +235,187 @@ catchmap2 <- ggplot() +
 		# geom_point(data=obsfull %>% filter(data_type=="encounter"), aes(x = long, y = lat, fill=data_type), pch=22, alpha=0.6) +
 		xlab("Longitude") + ylab("Latitude") +
 		# scale_fill_brewer(palette = "Set1") +
-		mytheme()
+		theme_minimal()
 ggsave(file.path(fig_dir, "Waikato_on_NZ.png"), catchmap2)
 
-#########################################
-## Waikato catchment downstream segments
-#########################################
+# #########################################
+# ## Waikato catchment downstream segments
+# #########################################
 
-# loc_df <- hab_sub %>% select('easting', 'northing')
-# loc_mat <- as.matrix(loc_df)
-# loc <- st_linestring(loc_mat)
-# loc_simp <- st_simplify(loc, dTolerance = 5)
+# # loc_df <- hab_sub %>% select('easting', 'northing')
+# # loc_mat <- as.matrix(loc_df)
+# # loc <- st_linestring(loc_mat)
+# # loc_simp <- st_simplify(loc, dTolerance = 5)
 
-obs_child <- unique(obs_sub$child_i)
+# obs_child <- unique(obs_sub$child_i)
 
-obs_enc <- obs_sub %>% filter(data_type == "encounter")
-obs_count <- obs_sub %>% filter(data_type == "count")
+# obs_enc <- obs_sub %>% filter(data_type == "encounter")
+# obs_count <- obs_sub %>% filter(data_type == "count")
 
-#################################
-## network with all observations
-net_obs <- network_sub %>% filter(child_s %in% obs_child)
-nextdown <- network_sub %>% filter(child_s %in% net_obs$parent_s)
-save <- rbind.data.frame(net_obs,nextdown)
-for(i in 1:100){
-  nextdown <- network_sub %>% filter(child_s %in% nextdown$parent_s)
-  save <- unique(rbind.data.frame(save, nextdown))
-  print(nrow(save))
-}
-network_sub2 <- save
+# #################################
+# ## network with all observations
+# net_obs <- network_sub %>% filter(child_s %in% obs_child)
+# nextdown <- network_sub %>% filter(child_s %in% net_obs$parent_s)
+# save <- rbind.data.frame(net_obs,nextdown)
+# for(i in 1:100){
+#   nextdown <- network_sub %>% filter(child_s %in% nextdown$parent_s)
+#   save <- unique(rbind.data.frame(save, nextdown))
+#   print(nrow(save))
+# }
+# network_sub2 <- save
 
-hab_sub2 <- hab_sub %>% filter(child_s %in% network_sub2$child_s)
+# hab_sub2 <- hab_sub %>% filter(child_s %in% network_sub2$child_s)
 
-## rename nodes
-nodes <- unique(c(network_sub2$child_s, network_sub2$parent_s))
-inodes <- seq_along(nodes)
+# ## rename nodes
+# nodes <- unique(c(network_sub2$child_s, network_sub2$parent_s))
+# inodes <- seq_along(nodes)
 
-net_parents <- sapply(1:nrow(network_sub2), function(x){
-  if(network_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == network_sub2$parent_s[x])]
-  if(network_sub2$parent_s[x] == 0) new_node <- 0
-  return(new_node)
-})
-net_children <- sapply(1:nrow(network_sub2), function(x) inodes[which(nodes == network_sub2$child_s[x])])
+# net_parents <- sapply(1:nrow(network_sub2), function(x){
+#   if(network_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == network_sub2$parent_s[x])]
+#   if(network_sub2$parent_s[x] == 0) new_node <- 0
+#   return(new_node)
+# })
+# net_children <- sapply(1:nrow(network_sub2), function(x) inodes[which(nodes == network_sub2$child_s[x])])
 
-network_sub2$parent_s <- net_parents
-network_sub2$child_s <- net_children
+# network_sub2$parent_s <- net_parents
+# network_sub2$child_s <- net_children
 
-obs_parents <- sapply(1:nrow(obs_sub), function(x){
-  if(obs_sub$parent_i[x] != 0) new_node <- inodes[which(nodes == obs_sub$parent_i[x])]
-  if(obs_sub$parent_i[x] == 0) new_node <- 0
-  return(new_node)  
-})
-obs_children <- sapply(1:nrow(obs_sub), function(x) inodes[which(nodes == obs_sub$child_i[x])])
+# obs_parents <- sapply(1:nrow(obs_sub), function(x){
+#   if(obs_sub$parent_i[x] != 0) new_node <- inodes[which(nodes == obs_sub$parent_i[x])]
+#   if(obs_sub$parent_i[x] == 0) new_node <- 0
+#   return(new_node)  
+# })
+# obs_children <- sapply(1:nrow(obs_sub), function(x) inodes[which(nodes == obs_sub$child_i[x])])
 
-obs_sub2 <- obs_sub
-obs_sub2$parent_i <- obs_parents
-obs_sub2$child_i <- obs_children
+# obs_sub2 <- obs_sub
+# obs_sub2$parent_i <- obs_parents
+# obs_sub2$child_i <- obs_children
 
-hab_parents <- sapply(1:nrow(hab_sub2), function(x){
-  if(hab_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == hab_sub2$parent_s[x])]
-  if(hab_sub2$parent_s[x] == 0) new_node <- 0
-  return(new_node)
-})
-hab_children <- sapply(1:nrow(hab_sub2), function(x) inodes[which(nodes == hab_sub2$child_s[x])])
+# hab_parents <- sapply(1:nrow(hab_sub2), function(x){
+#   if(hab_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == hab_sub2$parent_s[x])]
+#   if(hab_sub2$parent_s[x] == 0) new_node <- 0
+#   return(new_node)
+# })
+# hab_children <- sapply(1:nrow(hab_sub2), function(x) inodes[which(nodes == hab_sub2$child_s[x])])
 
-hab_sub2$parent_s <- hab_parents
-hab_sub2$child_s <- hab_children
+# hab_sub2$parent_s <- hab_parents
+# hab_sub2$child_s <- hab_children
 
-network_all <- network_sub2
-obs_all <- obs_sub2
-hab_all <- hab_sub2
+# network_all <- network_sub2
+# obs_all <- obs_sub2
+# hab_all <- hab_sub2
 
-###############################
-## network with count data 
-net_obs <- network_sub %>% filter(child_s %in% obs_count$child_i)
-nextdown <- network_sub %>% filter(child_s %in% net_obs$parent_s)
-save <- rbind.data.frame(net_obs,nextdown)
-for(i in 1:500){
-  nextdown <- network_sub %>% filter(child_s %in% nextdown$parent_s)
-  save <- unique(rbind.data.frame(save, nextdown))
-  print(nrow(save))
-}
-network_sub2 <- save
+# ###############################
+# ## network with count data 
+# net_obs <- network_sub %>% filter(child_s %in% obs_count$child_i)
+# nextdown <- network_sub %>% filter(child_s %in% net_obs$parent_s)
+# save <- rbind.data.frame(net_obs,nextdown)
+# for(i in 1:500){
+#   nextdown <- network_sub %>% filter(child_s %in% nextdown$parent_s)
+#   save <- unique(rbind.data.frame(save, nextdown))
+#   print(nrow(save))
+# }
+# network_sub2 <- save
 
-hab_sub2 <- hab_sub %>% filter(child_s %in% network_sub2$child_s)
+# hab_sub2 <- hab_sub %>% filter(child_s %in% network_sub2$child_s)
 
-## rename nodes
-nodes <- unique(c(network_sub2$child_s, network_sub2$parent_s))
-inodes <- seq_along(nodes)
+# ## rename nodes
+# nodes <- unique(c(network_sub2$child_s, network_sub2$parent_s))
+# inodes <- seq_along(nodes)
 
-net_parents <- sapply(1:nrow(network_sub2), function(x){
-  if(network_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == network_sub2$parent_s[x])]
-  if(network_sub2$parent_s[x] == 0) new_node <- 0
-  return(new_node)
-})
-net_children <- sapply(1:nrow(network_sub2), function(x) inodes[which(nodes == network_sub2$child_s[x])])
+# net_parents <- sapply(1:nrow(network_sub2), function(x){
+#   if(network_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == network_sub2$parent_s[x])]
+#   if(network_sub2$parent_s[x] == 0) new_node <- 0
+#   return(new_node)
+# })
+# net_children <- sapply(1:nrow(network_sub2), function(x) inodes[which(nodes == network_sub2$child_s[x])])
 
-network_sub2$parent_s <- net_parents
-network_sub2$child_s <- net_children
+# network_sub2$parent_s <- net_parents
+# network_sub2$child_s <- net_children
 
-obs_sub <- obs_count
-obs_parents <- sapply(1:nrow(obs_sub), function(x){
-  if(obs_sub$parent_i[x] != 0) new_node <- inodes[which(nodes == obs_sub$parent_i[x])]
-  if(obs_sub$parent_i[x] == 0) new_node <- 0
-  return(new_node)  
-})
-obs_children <- sapply(1:nrow(obs_sub), function(x) inodes[which(nodes == obs_sub$child_i[x])])
+# obs_sub <- obs_count
+# obs_parents <- sapply(1:nrow(obs_sub), function(x){
+#   if(obs_sub$parent_i[x] != 0) new_node <- inodes[which(nodes == obs_sub$parent_i[x])]
+#   if(obs_sub$parent_i[x] == 0) new_node <- 0
+#   return(new_node)  
+# })
+# obs_children <- sapply(1:nrow(obs_sub), function(x) inodes[which(nodes == obs_sub$child_i[x])])
 
-obs_sub2 <- obs_sub
-obs_sub2$parent_i <- obs_parents
-obs_sub2$child_i <- obs_children
+# obs_sub2 <- obs_sub
+# obs_sub2$parent_i <- obs_parents
+# obs_sub2$child_i <- obs_children
 
-hab_parents <- sapply(1:nrow(hab_sub2), function(x){
-  if(hab_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == hab_sub2$parent_s[x])]
-  if(hab_sub2$parent_s[x] == 0) new_node <- 0
-  return(new_node)
-})
-hab_children <- sapply(1:nrow(hab_sub2), function(x) inodes[which(nodes == hab_sub2$child_s[x])])
+# hab_parents <- sapply(1:nrow(hab_sub2), function(x){
+#   if(hab_sub2$parent_s[x] != 0) new_node <- inodes[which(nodes == hab_sub2$parent_s[x])]
+#   if(hab_sub2$parent_s[x] == 0) new_node <- 0
+#   return(new_node)
+# })
+# hab_children <- sapply(1:nrow(hab_sub2), function(x) inodes[which(nodes == hab_sub2$child_s[x])])
 
-hab_sub2$parent_s <- hab_parents
-hab_sub2$child_s <- hab_children
+# hab_sub2$parent_s <- hab_parents
+# hab_sub2$child_s <- hab_children
 
-network_count <- network_sub2
-obs_count <- obs_sub2
-hab_count <- hab_sub2
+# network_count <- network_sub2
+# obs_count <- obs_sub2
+# hab_count <- hab_sub2
 
-network_all$network <- "all"
-network_count$network <- "counts"
+# network_all$network <- "all"
+# network_count$network <- "counts"
 
-net_compare <- rbind.data.frame(network_all, network_count)
-p <- ggplot(net_compare) +
-	geom_point(aes(x = long, y = lat, color = network), alpha=0.5) +
-	scale_color_brewer(palette = "Set1") +
-	mytheme()
-ggsave(file.path(fig_dir, "Waikato_network_all_vs_counts.png"), p)
-all(network_count$child_s %in% network_all$child_s)
-
-
-saveRDS(obs_all, file.path(data_dir, "Waikato_observations_downstreamOnly.rds"))
-saveRDS(network_all, file.path(data_dir, "Waikato_network_downstreamOnly.rds"))
-saveRDS(hab_all, file.path(data_dir, "Waikato_habitat_downstreamOnly.rds"))
-saveRDS(obs_count, file.path(data_dir, "Waikato_observations_downstreamOnly_count.rds"))
-saveRDS(network_count, file.path(data_dir, "Waikato_network_downstreamOnly_count.rds"))
-saveRDS(hab_count, file.path(data_dir, "Waikato_habitat_downstreamOnly_count.rds"))
-
-obs_sub2 <- readRDS(file.path(data_dir, "Waikato_observations_downstreamOnly.rds"))
-network_sub2 <- readRDS(file.path(data_dir, "Waikato_network_downstreamOnly.rds"))
-
-		l2 <- lapply(1:nrow(network_sub2), function(x){
-			parent <- network_sub2$parent_s[x]
-			find <- network_sub2 %>% filter(child_s == parent)
-			if(nrow(find)>0) out <- cbind.data.frame(network_sub2[x,], 'long2'=find$long, 'lat2'=find$lat)
-			if(nrow(find)==0) out <- cbind.data.frame(network_sub2[x,], 'long2'=NA, 'lat2'=NA)
-			# if(nrow(find)>0) out <- cbind.data.frame(network_sub2[x,], 'long2'=find$long, 'lat2'=find$lat)
-			# if(nrow(find)==0) out <- cbind.data.frame(network_sub2[x,], 'long2'=NA, 'lat2'=NA)
-			return(out)
-		})
-		l2 <- do.call(rbind, l2)
-
-catchmap <- ggplot() +
-		geom_point(data=network_sub2, aes(x = long, y = lat), col="gray") +
-		geom_segment(data=l2, aes(x = long2,y = lat2, xend = long, yend = lat), col="gray") +
-		geom_point(data=obs_sub2, aes(x = long, y = lat, fill = data_type), pch=22, alpha=0.6) +
-		scale_fill_brewer(palette = "Set1") +
-		xlab("Longitude") + ylab("Latitude") +
-		# guides(fill = FALSE) +
-		mytheme()
-ggsave(file.path(fig_dir, "Waikato_map_downstream.png"), catchmap)
+# net_compare <- rbind.data.frame(network_all, network_count)
+# p <- ggplot(net_compare) +
+# 	geom_point(aes(x = long, y = lat, color = network), alpha=0.5) +
+# 	scale_color_brewer(palette = "Set1") +
+# 	mytheme()
+# ggsave(file.path(fig_dir, "Waikato_network_all_vs_counts.png"), p)
+# all(network_count$child_s %in% network_all$child_s)
 
 
-data_dir2 <- file.path(nz_dir, "data_save")
-## save rda
-nz_waikato_longfin_eel_downstream <- list()
-nz_waikato_longfin_eel_downstream$observations <- obs_all
-nz_waikato_longfin_eel_downstream$network <- network_all
-nz_waikato_longfin_eel_downstream$habitat <- hab_all
-save(nz_waikato_longfin_eel_downstream, file=file.path(data_dir2, "nz_waikato_longfin_eel_downstream.rda"))
+# saveRDS(obs_all, file.path(data_dir, "Waikato_observations_downstreamOnly.rds"))
+# saveRDS(network_all, file.path(data_dir, "Waikato_network_downstreamOnly.rds"))
+# saveRDS(hab_all, file.path(data_dir, "Waikato_habitat_downstreamOnly.rds"))
+# saveRDS(obs_count, file.path(data_dir, "Waikato_observations_downstreamOnly_count.rds"))
+# saveRDS(network_count, file.path(data_dir, "Waikato_network_downstreamOnly_count.rds"))
+# saveRDS(hab_count, file.path(data_dir, "Waikato_habitat_downstreamOnly_count.rds"))
 
-nz_waikato_longfin_eel_downstream_counts <- list()
-nz_waikato_longfin_eel_downstream_counts$observations <- obs_count
-nz_waikato_longfin_eel_downstream_counts$network <- network_count
-nz_waikato_longfin_eel_downstream_counts$habitat <- hab_count
-save(nz_waikato_longfin_eel_downstream_counts, file=file.path(data_dir2, "nz_waikato_longfin_eel_downstream_counts.rda"))
+# obs_sub2 <- readRDS(file.path(data_dir, "Waikato_observations_downstreamOnly.rds"))
+# network_sub2 <- readRDS(file.path(data_dir, "Waikato_network_downstreamOnly.rds"))
+
+# 		l2 <- lapply(1:nrow(network_sub2), function(x){
+# 			parent <- network_sub2$parent_s[x]
+# 			find <- network_sub2 %>% filter(child_s == parent)
+# 			if(nrow(find)>0) out <- cbind.data.frame(network_sub2[x,], 'long2'=find$long, 'lat2'=find$lat)
+# 			if(nrow(find)==0) out <- cbind.data.frame(network_sub2[x,], 'long2'=NA, 'lat2'=NA)
+# 			# if(nrow(find)>0) out <- cbind.data.frame(network_sub2[x,], 'long2'=find$long, 'lat2'=find$lat)
+# 			# if(nrow(find)==0) out <- cbind.data.frame(network_sub2[x,], 'long2'=NA, 'lat2'=NA)
+# 			return(out)
+# 		})
+# 		l2 <- do.call(rbind, l2)
+
+# catchmap <- ggplot() +
+# 		geom_point(data=network_sub2, aes(x = long, y = lat), col="gray") +
+# 		geom_segment(data=l2, aes(x = long2,y = lat2, xend = long, yend = lat), col="gray") +
+# 		geom_point(data=obs_sub2, aes(x = long, y = lat, fill = data_type), pch=22, alpha=0.6) +
+# 		scale_fill_brewer(palette = "Set1") +
+# 		xlab("Longitude") + ylab("Latitude") +
+# 		# guides(fill = FALSE) +
+# 		mytheme()
+# ggsave(file.path(fig_dir, "Waikato_map_downstream.png"), catchmap)
+
+
+# data_dir2 <- file.path(nz_dir, "data_save")
+# ## save rda
+# nz_waikato_longfin_eel_downstream <- list()
+# nz_waikato_longfin_eel_downstream$observations <- obs_all
+# nz_waikato_longfin_eel_downstream$network <- network_all
+# nz_waikato_longfin_eel_downstream$habitat <- hab_all
+# save(nz_waikato_longfin_eel_downstream, file=file.path(data_dir2, "nz_waikato_longfin_eel_downstream.rda"))
+
+# nz_waikato_longfin_eel_downstream_counts <- list()
+# nz_waikato_longfin_eel_downstream_counts$observations <- obs_count
+# nz_waikato_longfin_eel_downstream_counts$network <- network_count
+# nz_waikato_longfin_eel_downstream_counts$habitat <- hab_count
+# save(nz_waikato_longfin_eel_downstream_counts, file=file.path(data_dir2, "nz_waikato_longfin_eel_downstream_counts.rda"))
 
 
 

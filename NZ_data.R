@@ -239,10 +239,6 @@ saveRDS(obs_full, file.path(data_dir, "NZ_observations.rds"))
 saveRDS(network_full, file.path(data_dir, "NZ_network.rds"))
 saveRDS(hab_full, file.path(data_dir, "NZ_habitat.rds"))
 
-obs_full <- readRDS(file.path(data_dir, "NZ_observations.rds"))
-network_full <- readRDS(file.path(data_dir, "NZ_network.rds"))
-hab_full <- readRDS(file.path(data_dir, "NZ_habitat.rds"))
-
 nzmap <- ggplot(network_full) +
 		geom_point(aes(x = long, y = lat), cex=0.2) +
 		xlab("Longitude") + ylab("Latitude") +
@@ -262,3 +258,38 @@ nz_longfin_eel$observations <- obs_full
 nz_longfin_eel$network <- network_full
 nz_longfin_eel$habitat <- hab_full
 save(nz_longfin_eel, file=file.path(data_dir, "nz_longfin_eel.rda"))
+
+#############################
+## subset Waitaki catchment
+#############################
+
+network_sub <- netfull %>% filter(grepl("aitaki", CatName))
+
+obs_sub <- obsfull %>% filter(grepl("aitaki", CatName))
+
+all(obs_sub$nzsegment %in% network_sub$nzsegment)
+# obs_sub <- obs_sub %>% filter(nzsegment %in% network_sub$nzsegment == TRUE)
+hab_sub <- habfull %>% filter(child_s %in% network_sub$child_s == TRUE)
+covar <- unique(hab_sub$covariate)
+covar_toUse <- c('MeanFlowCumecs','Dist2Coast_FromMid','loc_elev','loc_slope','loc_rnvar',"local_twarm",'DamAffected')
+all(covar_toUse %in% covar)
+
+#############################
+## subset Waikato catchment
+#############################
+
+network_sub <- netfull %>% filter(grepl("aikato", CatName))
+
+obs_sub <- obsfull %>% filter(grepl("aikato", CatName))
+
+all(obs_sub$nzsegment %in% network_sub$nzsegment)
+# obs_sub <- obs_sub %>% filter(nzsegment %in% network_sub$nzsegment == TRUE)
+hab_sub <- habfull %>% filter(child_s %in% network_sub$child_s == TRUE)
+covar <- unique(hab_sub$covariate)
+covar_toUse <- c('MeanFlowCumecs','Dist2Coast_FromMid','loc_elev','loc_slope','loc_rnvar',"local_twarm",'width','DamAffected')
+all(covar_toUse %in% covar)
+
+dam <- hab_sub %>% filter(covariate == "DamAffected")
+ggplot(dam) +
+geom_point(aes(x = easting, y = northing, color = value))
+
