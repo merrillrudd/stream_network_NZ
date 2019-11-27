@@ -43,6 +43,13 @@ kato_obs <- nz_waikato_longfin_eel[["observations"]] %>%
 	mutate(Catchment = "Waikato") %>%
 	rename(present = data_value)
 reg_obs <- rbind.data.frame(taki_obs, kato_obs)
+reg_obs_info <- reg_obs %>%
+	group_by(year, Catchment) %>%
+	summarise(nsamp = length(present),
+			  npres = length(which(present > 0)),
+			  ppres = length(which(present > 0))/length(present))
+kato_obs_info <- reg_obs_info %>% filter(Catchment == "Waikato")
+taki_obs_info <- reg_obs_info %>% filter(Catchment == "Waitaki")
 
 map <- ggplot() +
 	geom_point(data = nz_net, aes(x = long, y = lat), pch = ".") +
