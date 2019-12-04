@@ -189,41 +189,41 @@ obs_reformat <- obs_reformat %>%
 	select(-catchment)
 
 # ## waikato densities 
-# waikato_dens_raw <- read.csv(file.path(data_dir, "Waikato Abundance.REC.csv"), stringsAsFactors=FALSE)
+waikato_dens_raw <- read.csv(file.path(data_dir, "Waikato Abundance.REC.csv"), stringsAsFactors=FALSE)
 
-# waikato_dens <- waikato_dens_raw %>%
-# 	select("Sample.Date_fish",'nzsegment', "E.NZTM", "N.NZTM", "average_measured_stream_channel_width_m", "Angdie.ALL") 
-# waikato_dens$Sample.Date_fish <- as.character(waikato_dens$Sample.Date_fish)
-# waikato_dens$year <- sapply(1:nrow(waikato_dens), function(x) strsplit(waikato_dens$Sample.Date_fish[x], "/")[[1]][3])
-# waikato_dens <- waikato_dens %>%
-# 	select(-Sample.Date_fish) %>%
-# 	rename('easting'=E.NZTM, "northing"=N.NZTM, 'width' = average_measured_stream_channel_width_m, 'count'=Angdie.ALL) %>%
-# 	mutate(width = width/1000) %>%
-# 	mutate(length = 150/1000) %>%
-# 	mutate(dist_i = length) %>% #* length) %>%
-# 	mutate('data_type' = "count") %>%
-# 	rename('data_value' = count)
+waikato_dens <- waikato_dens_raw %>%
+	select("Sample.Date_fish",'nzsegment', "E.NZTM", "N.NZTM", "average_measured_stream_channel_width_m", "Angdie.ALL") 
+waikato_dens$Sample.Date_fish <- as.character(waikato_dens$Sample.Date_fish)
+waikato_dens$year <- sapply(1:nrow(waikato_dens), function(x) strsplit(waikato_dens$Sample.Date_fish[x], "/")[[1]][3])
+waikato_dens <- waikato_dens %>%
+	select(-Sample.Date_fish) %>%
+	rename('easting'=E.NZTM, "northing"=N.NZTM, 'width' = average_measured_stream_channel_width_m, 'count'=Angdie.ALL) %>%
+	mutate(width = width/1000) %>%
+	mutate(length = 150/1000) %>%
+	mutate(dist_i = length) %>% #* length) %>%
+	mutate('data_type' = "count") %>%
+	rename('data_value' = count)
 
-# obs_ll_child <- lapply(1:nrow(waikato_dens), function(x){
-# 	p <- calc_NZ_latlon(northing = waikato_dens$northing[x], easting = waikato_dens$easting[x])
-# 	return(p)
-# })
-# obs_ll_child <- do.call(rbind, obs_ll_child)
-# # obs_ll_child <- data.frame(obs_ll_child) #%>% dplyr::rename('long_child'=long, 'lat_child'=lat)
+obs_ll_child <- lapply(1:nrow(waikato_dens), function(x){
+	p <- calc_NZ_latlon(northing = waikato_dens$northing[x], easting = waikato_dens$easting[x])
+	return(p)
+})
+obs_ll_child <- do.call(rbind, obs_ll_child)
+# obs_ll_child <- data.frame(obs_ll_child) #%>% dplyr::rename('long_child'=long, 'lat_child'=lat)
 
-# waikato_dens_ll <- cbind.data.frame(waikato_dens, obs_ll_child)
-# all(waikato_dens_ll$nzsegment %in% network_full$nzsegment)
+waikato_dens_ll <- cbind.data.frame(waikato_dens, obs_ll_child)
+all(waikato_dens_ll$nzsegment %in% network_full$nzsegment)
 
-# waikato_reformat <- inner_join(network_sz, waikato_dens_ll, by="nzsegment") %>% filter(parent_s != 0)
-# waikato_reformat <- waikato_reformat %>% 
-# 	select(-width.x) %>%
-# 	rename('width' = width.y) %>%
-# 	mutate('fishmethod'=unique(obs_reformat$fishmethod)[grepl("Electric",unique(obs_reformat$fishmethod))]) %>%
-# 	mutate('agency'=unique(obs_reformat$agency)[grepl('council',unique(obs_reformat$agency))]) %>%
-# 	mutate(pass = 0) %>%
-# 	mutate(source = "Waikato_region")
+waikato_reformat <- inner_join(network_sz, waikato_dens_ll, by="nzsegment") %>% filter(parent_s != 0)
+waikato_reformat <- waikato_reformat %>% 
+	select(-width.x) %>%
+	rename('width' = width.y) %>%
+	mutate('fishmethod'=unique(obs_reformat$fishmethod)[grepl("Electric",unique(obs_reformat$fishmethod))]) %>%
+	mutate('agency'="waikato_study") %>%
+	mutate(pass = 0) %>%
+	mutate(source = "waikato_study")
 
-obs_all <- rbind.data.frame(obs_reformat)#, waikato_reformat)
+obs_all <- rbind.data.frame(obs_reformat, waikato_reformat)
 
 obs_full <- obs_all %>% 
 			rename('parent_i' = parent_s, 'child_i' = child_s)
@@ -247,7 +247,7 @@ ggsave(file.path(fig_dir, "NZmap.png"), nzmap)
 
 obsmap <- ggplot() +
 		geom_point(data=network_full, aes(x = long, y = lat), col = "black", cex=0.2) +
-		geom_point(data=obs_full %>% filter(data_type=="encounter"), aes(x = long, y = lat, color = data_type)) +
+		geom_point(data=obs_full, aes(x = long, y = lat, color = data_type)) +
 		xlab("Longitude") + ylab("Latitude") +
 		theme_minimal()
 ggsave(file.path(fig_dir, "NZmap_obs_encounter.png"), obsmap)

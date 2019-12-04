@@ -36,10 +36,17 @@ habfull <- readRDS(file.path(data_dir, "NZ_habitat.rds"))
 
 network_sub <- netfull %>% filter(grepl("aikato", CatName))
 
-obs_sub <- obsfull %>% filter(grepl("aikato", CatName))
+obs_sub1 <- obsfull %>% filter(grepl("aikato", CatName))
+obs_sub2 <- obsfull %>% filter(grepl("aikato", source))
+obs_sub <- rbind.data.frame(obs_sub1, obs_sub2)
 
+all(obs_sub2$nzsegment %in% netfull$nzsegment)
 all(obs_sub$nzsegment %in% network_sub$nzsegment)
-# obs_sub <- obs_sub %>% filter(nzsegment %in% network_sub$nzsegment == TRUE)
+
+## filter Waikato observations
+obs_sub <- obs_sub %>% filter(nzsegment %in% network_sub$nzsegment)
+all(obs_sub$nzsegment %in% network_sub$nzsegment)
+
 hab_sub <- habfull %>% filter(child_s %in% network_sub$child_s == TRUE)
 covar <- unique(hab_sub$covariate)
 covar_toUse <- c('MeanFlowCumecs','Dist2Coast_FromMid','loc_elev','loc_slope','loc_rnvar',"local_twarm",'DamAffected')

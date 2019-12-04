@@ -42,7 +42,9 @@ taki_obs <- nz_waitaki_longfin_eel[["observations"]] %>%
 kato_obs <- nz_waikato_longfin_eel[["observations"]] %>% 
 	mutate(Catchment = "Waikato") %>%
 	rename(present = data_value)
+kato_obs$present <- sapply(1:nrow(kato_obs), function(x) ifelse(kato_obs$present[x] > 1, 1, kato_obs$present[x]))
 reg_obs <- rbind.data.frame(taki_obs, kato_obs)
+reg_obs$year <- as.numeric(reg_obs$year)
 reg_obs_info <- reg_obs %>%
 	group_by(year, Catchment) %>%
 	summarise(nsamp = length(present),
@@ -56,7 +58,7 @@ map <- ggplot() +
 	geom_point(data = reg_net, aes(x = long, y = lat, color = Catchment), cex=0.5) +
 	scale_color_brewer(palette = "Set1") +
 	xlab("Longitude") + ylab("Latitude") +
-	theme_bw()
+	theme_bw(base_size = 14)
 ggsave(file.path(fig_dir, "Region_map.png"), map, height = 10, width = 11)
 
 ## map with regions
@@ -67,7 +69,7 @@ regmap <- ggplot() +
 	facet_wrap(Catchment~., scales = "free") +
 	guides(fill=guide_legend(title="Year")) +
 	xlab("Longitude") + ylab("Latitude") +
-	theme_bw()
+	theme_bw(base_size = 14)
 ggsave(file.path(fig_dir, "Region_map_observations.png"), regmap, height = 10, width = 20)
 
 takimap <- ggplot() + 

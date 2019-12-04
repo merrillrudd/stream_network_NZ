@@ -55,8 +55,8 @@ obs <- nz_waitaki_longfin_eel[["observations"]] %>%
     select(-data_type) %>%
     rename('present' = data_value) %>%
     mutate('method_agency' = paste0(fishmethod, "_", agency)) %>%
-    rename("Year"=year) %>%
-    filter(fishmethod != "Angling")
+    rename("Year"=year) #%>%
+    # filter(fishmethod != "Angling")
 
 ## check that segment distance is more than 0.125
 # obs$dist_i <- sapply(1:nrow(obs), function(x){
@@ -200,9 +200,9 @@ method_info <- Data_Geostat %>%
             Prop_samples = length(Method)/nrow(Data_Geostat),
             Prop_samples_w_encounters = length(which(Catch_KG > 0))/length(Method))
 method_info <- method_info[rev(order(method_info$Samples)),]
-# Data_Geostat$Method2 <- as.character(Data_Geostat$Method)
-# Data_Geostat$Method2[which(Data_Geostat$Method %in% c("Trap","Visual","Angling"))] <- "Trap_Visual_Angling"
-Q_ik_method <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Method"])[,-1,drop=FALSE]
+Data_Geostat$Method2 <- as.character(Data_Geostat$Method)
+Data_Geostat$Method2[which(Data_Geostat$Method %in% c("Trap","Visual","Angling"))] <- "Trap_Visual_Angling"
+Q_ik_method <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Method2"])[,-1,drop=FALSE]
 
 
 agency_info <- Data_Geostat %>%
@@ -211,9 +211,9 @@ agency_info <- Data_Geostat %>%
             Prop_samples = length(Agency)/nrow(Data_Geostat),
             Prop_samples_w_encounters = length(which(Catch_KG > 0))/length(Agency))
 agency_info <- agency_info[rev(order(agency_info$Samples)),]
-# Data_Geostat$Agency2 <- as.character(Data_Geostat$Agency)
-# Data_Geostat$Agency2[which(Data_Geostat$Agency %in% c("fish&game","consultants"))] <- "fish&game_consultants"
-Q_ik_agency <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Agency"])[,-3,drop=FALSE]
+Data_Geostat$Agency2 <- as.character(Data_Geostat$Agency)
+Data_Geostat$Agency2[which(Data_Geostat$Agency %in% c("fish&game","consultants"))] <- "fish&game_consultants"
+Q_ik_agency <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Agency2"])[,-2,drop=FALSE]
 
 
 method_agency_info <- Data_Geostat %>%
@@ -222,23 +222,23 @@ method_agency_info <- Data_Geostat %>%
             Prop_samples = length(Method_Agency)/nrow(Data_Geostat),
             Prop_samples_w_encounters = length(which(Catch_KG > 0))/length(Method_Agency))
 method_agency_info <- method_agency_info[rev(order(method_agency_info$Samples)),]
-# Data_Geostat$Method_Agency2 <- sapply(1:nrow(Data_Geostat), function(x){
-#   if(grepl("Electric", Data_Geostat$Method_Agency[x]) == FALSE){
-#     out <- as.character(Data_Geostat$Method[x])
-#   } else{
-#     out <- as.character(Data_Geostat$Method_Agency[x])
-#   }
-#   if(out %in% c("Trap","Visual","Angling")) out <- "Method_other"
-#   if(grepl("fish&game",out) | grepl("consultants",out)) out <- "Electric fishing_agency_other"
-#   return(out)
-# })
-# method_agency_info2 <- Data_Geostat %>%
-#   group_by(Method_Agency2) %>%
-#   summarise(Samples = length(Method_Agency2), 
-#             Prop_samples = length(Method_Agency2)/nrow(Data_Geostat),
-#             Prop_samples_w_encounters = length(which(Catch_KG > 0))/length(Method_Agency2))
-# method_agency_info2 <- method_agency_info2[rev(order(method_agency_info2$Samples)),]
-Q_ik_methodagency <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Method_Agency"])[,-4,drop=FALSE]
+Data_Geostat$Method_Agency2 <- sapply(1:nrow(Data_Geostat), function(x){
+  if(grepl("Electric", Data_Geostat$Method_Agency[x]) == FALSE){
+    out <- as.character(Data_Geostat$Method[x])
+  } else{
+    out <- as.character(Data_Geostat$Method_Agency[x])
+  }
+  if(out %in% c("Trap","Visual","Angling")) out <- "Method_other"
+  if(grepl("fish&game",out) | grepl("consultants",out)) out <- "Electric fishing_agency_other"
+  return(out)
+})
+method_agency_info2 <- Data_Geostat %>%
+  group_by(Method_Agency2) %>%
+  summarise(Samples = length(Method_Agency2), 
+            Prop_samples = length(Method_Agency2)/nrow(Data_Geostat),
+            Prop_samples_w_encounters = length(which(Catch_KG > 0))/length(Method_Agency2))
+method_agency_info2 <- method_agency_info2[rev(order(method_agency_info2$Samples)),]
+Q_ik_methodagency <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Method_Agency2"])[,-3,drop=FALSE]
 
 ##################################
 ## Models
@@ -250,6 +250,128 @@ Q_ik_methodagency <- ThorsonUtilities::vector_to_design_matrix(Data_Geostat[,"Me
 ## habitat covariate, fishing method covariate
 ###########################
 path <- file.path(res_dir, "model1")
+dir.create(path, showWarnings = FALSE)
+fig <- file.path(path, "figures")
+dir.create(fig)
+
+ignore <- file.copy(from = file.path(res_dir, "VAST_v8_2_0.cpp"), to = path)
+ignore <- file.copy(from = file.path(res_dir, "VAST_v8_2_0.o"), to = path)
+ignore <- file.copy(from = file.path(res_dir, "VAST_v8_2_0.so"), to = path)
+
+Data_inp <- Data_Geostat
+X_gtp_inp <- X_gtp_input
+X_itp_inp <- X_itp_input
+Xconfig_zcp_inp <- array(1, dim = c(2,1,n_p))
+Xconfig_zcp_inp[2,,] <- 0
+Q_ik_inp <- Q_ik_method
+
+FieldConfig <- c("Omega1" = 1, "Epsilon1" = 1, "Omega2" = 0, "Epsilon2" = 0)
+RhoConfig <- c("Beta1" = 1, "Beta2" = 3, "Epsilon1" = 0, "Epsilon2" = 0)
+ObsModel <- cbind("PosDist" = 1, "Link" = 0)
+OverdispersionConfig <- c("Eta1" = 0, "Eta2" = 0)
+Options <- c("Calculate_range" = 1,
+            "Calculate_effective_area" = 1)
+
+settings <- make_settings(Version = "VAST_v8_2_0", 
+                          n_x = nrow(Network_sz), 
+                          Region = "Stream_network",
+                          FieldConfig = FieldConfig,
+                          RhoConfig = RhoConfig,
+                          ObsModel = ObsModel,
+                          OverdispersionConfig = OverdispersionConfig,
+                          Options = Options,
+                          purpose = "index",
+                          fine_scale = FALSE, 
+                          bias.correct = FALSE)
+settings$Method <- "Stream_network"
+settings$grid_size_km <- 1
+
+
+fit0 <- fit_model(settings = settings,
+                  Lat_i = Data_inp[,"Lat"],
+                  Lon_i = Data_inp[,"Lon"],
+                  t_iz = Data_inp[,"Year"],
+                  c_i = rep(0, nrow(Data_inp)),
+                  b_i = Data_inp[,"Catch_KG"],
+                  a_i = Data_inp[,"AreaSwept_km2"],
+                  v_i = Data_inp[,"Method2"],
+                  working_dir = path,
+                  extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
+                  spatial_args = list(Network_sz_LL = Network_sz_LL),
+                  Network_sz = Network_sz,
+                  Xconfig_zcp = Xconfig_zcp_inp,
+                  X_gtp = X_gtp_inp, 
+                  X_itp = X_itp_inp,
+                  Q_ik = Q_ik_inp,
+                  run_model = FALSE)
+
+Par <- fit0$tmb_list$Parameters
+Map <- fit0$tmb_list$Map
+Par[["logkappa1"]] <- 5
+Map[["lambda2_k"]] <- factor(rep(NA, length(Par[["lambda2_k"]])))
+
+fit1 <- fit_model(settings = settings,
+                  Lat_i = Data_inp[,"Lat"],
+                  Lon_i = Data_inp[,"Lon"],
+                  t_iz = Data_inp[,"Year"],
+                  c_i = rep(0, nrow(Data_inp)),
+                  b_i = Data_inp[,"Catch_KG"],
+                  a_i = Data_inp[,"AreaSwept_km2"],
+                  v_i = Data_inp[,"Method2"],
+                  working_dir = path,
+                  extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
+                  spatial_args = list(Network_sz_LL = Network_sz_LL),
+                  Network_sz = Network_sz,
+                  Xconfig_zcp = Xconfig_zcp_inp,
+                  X_gtp = X_gtp_inp, 
+                  X_itp = X_itp_inp,
+                  Q_ik = Q_ik_inp,
+                  model_args = list(Map = Map, Par = Par),
+                  optimize_args = list(getsd = FALSE, newtonsteps = 0),
+                  test_fit = FALSE)
+check <- TMBhelper::Check_Identifiable(fit1$tmb_list$Obj)
+
+fit <- fit_model(settings = settings,
+                  Lat_i = Data_inp[,"Lat"],
+                  Lon_i = Data_inp[,"Lon"],
+                  t_iz = Data_inp[,"Year"],
+                  c_i = rep(0, nrow(Data_inp)),
+                  b_i = Data_inp[,"Catch_KG"],
+                  a_i = Data_inp[,"AreaSwept_km2"],
+                  v_i = Data_inp[,"Method2"],
+                  working_dir = path,
+                  extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
+                  spatial_args = list(Network_sz_LL = Network_sz_LL),
+                  Network_sz = Network_sz,
+                  Xconfig_zcp = Xconfig_zcp_inp,
+                  X_gtp = X_gtp_inp, 
+                  X_itp = X_itp_inp,
+                  Q_ik = Q_ik_inp,
+                  model_args = list(Map = Map, Par = Par),
+                  optimize_args = list(startpar = fit1$parameter_estimates$par),
+                  test_fit = FALSE)
+saveRDS(fit, file.path(path, "Fit.rds"))
+
+fit <- readRDS(file.path(path, "Fit.rds"))
+
+plot_maps(plot_set = c(1), fit = fit, Sdreport = fit$parameter_estimates$SD, TmbData = fit$data_list, spatial_list = fit$spatial_list, DirName = fig, category_names = "Longfin_eel", cex = 0.1)
+plot_maps(plot_set = c(6), fit = fit, Sdreport = fit$parameter_estimates$SD, TmbData = fit$data_list, spatial_list = fit$spatial_list, DirName = fig, category_names = "Longfin_eel", cex = 0.1)
+
+plot_maps(plot_set = c(1), fit = fit, Sdreport = fit$parameter_estimates$SD, TmbData = fit$data_list, spatial_list = fit$spatial_list, DirName = fig, category_names = "Longfin_eel", cex = 0.1, Panel = "Year")
+plot_maps(plot_set = c(6), fit = fit, Sdreport = fit$parameter_estimates$SD, TmbData = fit$data_list, spatial_list = fit$spatial_list, DirName = fig, category_names = "Longfin_eel", cex = 0.1, Panel = "Year")
+
+map_list <- make_map_info(Region = settings$Region, spatial_list = fit$spatial_list, Extrapolation_List = fit$extrapolation_list)
+Enc_prob <- plot_encounter_diagnostic(Report = fit$Report, Data_Geostat = Data_inp, DirName = fig)
+plot_range_index(Report = fit$Report, TmbData = fit$data_list, Sdreport = fit$parameter_estimates$SD, Znames = colnames(fit$data_list$Z_xm), PlotDir = fig, Year_Set = fit$year_labels, use_biascorr = TRUE, category_names = "Longfin_eels")
+plot_residuals(ObsModel = 1, fit = fit, Data = Data_inp, Network_sz_LL = Network_sz_LL, category_names = "Longfin_eels", FilePath = fig)
+
+##########################
+## model1a
+## spatiotemporal, spatial, temporal, 
+## beta1 IID, lognormal dist, 
+## habitat covariate, fishing method covariate
+###########################
+path <- file.path(res_dir, "model1a")
 dir.create(path, showWarnings = FALSE)
 fig <- file.path(path, "figures")
 dir.create(fig)
@@ -294,7 +416,7 @@ fit0 <- fit_model(settings = settings,
                   c_i = rep(0, nrow(Data_inp)),
                   b_i = Data_inp[,"Catch_KG"],
                   a_i = Data_inp[,"AreaSwept_km2"],
-                  v_i = Data_inp[,"Method"],
+                  v_i = Data_inp[,"Method2"],
                   working_dir = path,
                   extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
                   spatial_args = list(Network_sz_LL = Network_sz_LL),
@@ -307,7 +429,7 @@ fit0 <- fit_model(settings = settings,
 
 Par <- fit0$tmb_list$Parameters
 Map <- fit0$tmb_list$Map
-Par[["logkappa1"]] <- 5
+Par[["logkappa1"]] <- log(1/median(Network_sz$dist_s))
 Map[["lambda2_k"]] <- factor(rep(NA, length(Par[["lambda2_k"]])))
 
 fit1 <- fit_model(settings = settings,
@@ -317,7 +439,7 @@ fit1 <- fit_model(settings = settings,
                   c_i = rep(0, nrow(Data_inp)),
                   b_i = Data_inp[,"Catch_KG"],
                   a_i = Data_inp[,"AreaSwept_km2"],
-                  v_i = Data_inp[,"Method"],
+                  v_i = Data_inp[,"Method2"],
                   working_dir = path,
                   extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
                   spatial_args = list(Network_sz_LL = Network_sz_LL),
@@ -338,7 +460,7 @@ fit <- fit_model(settings = settings,
                   c_i = rep(0, nrow(Data_inp)),
                   b_i = Data_inp[,"Catch_KG"],
                   a_i = Data_inp[,"AreaSwept_km2"],
-                  v_i = Data_inp[,"Method"],
+                  v_i = Data_inp[,"Method2"],
                   working_dir = path,
                   extrapolation_args_input = list(input_grid = cbind("Lat" = Data_inp[,"Lat"], "Lon" = Data_inp[,"Lon"], "child_i" = Data_inp[,"Knot"], "Area_km2" = Data_inp[,"AreaSwept_km2"])),
                   spatial_args = list(Network_sz_LL = Network_sz_LL),
@@ -364,6 +486,7 @@ map_list <- make_map_info(Region = settings$Region, spatial_list = fit$spatial_l
 Enc_prob <- plot_encounter_diagnostic(Report = fit$Report, Data_Geostat = Data_inp, DirName = fig)
 plot_range_index(Report = fit$Report, TmbData = fit$data_list, Sdreport = fit$parameter_estimates$SD, Znames = colnames(fit$data_list$Z_xm), PlotDir = fig, Year_Set = fit$year_labels, use_biascorr = TRUE, category_names = "Longfin_eels")
 plot_residuals(ObsModel = 1, fit = fit, Data = Data_inp, Network_sz_LL = Network_sz_LL, category_names = "Longfin_eels", FilePath = fig)
+
 
 ##########################
 ## model2
@@ -1437,6 +1560,7 @@ plot_residuals(ObsModel = 1, fit = fit, Data = Data_inp, Network_sz_LL = Network
 df <- data.frame("Model" = c("model1",
                             "model2",
                             "model3",
+                            "model3b",
                             "model4",
                             "model5",
                             "model6",
@@ -1452,8 +1576,177 @@ df$deltaAIC <- df$AIC - min(df$AIC)
 df[order(df$AIC),]
 
 
-### MODEL A: SST, no habitat, gear/agency
-modelA <- readRDS(file.path(res_dir, "model8", "Fit.rds"))
+### MODEL A: SST, no habitat, gear
+modelA <- readRDS(file.path(res_dir, "model3", "Fit.rds"))
 
-### MODEL B: ST, habitat, gear/agency
-modelB <- readRDS(file.path(res_dir, "model5", "Fit.rds"))
+### MODEL B: SST, no habitat, gear
+modelB <- readRDS(file.path(res_dir, "model3b", "Fit.rds"))
+
+### MODEL C: ST, habitat, gear
+modelC <- readRDS(file.path(res_dir, "model2", "Fit.rds"))
+
+
+## compare maps
+ep_byModel <- lapply(1:3, function(x){
+  if(x == 1){
+    Report <- modelA$Report
+    year_labels = modelA$year_labels
+    years_to_plot = modelA$years_to_plot
+    spatial_list <- modelA$spatial_list
+    name <- "Spatiotemporal variation,\n Method covariates"
+  }
+  if(x == 2){
+    Report <- modelB$Report
+    year_labels = modelB$year_labels
+    years_to_plot = modelB$years_to_plot
+    spatial_list <- modelB$spatial_list
+    name <- "Spatiotemporal variation w/smoother,\nMethod covariates"
+  }
+  if(x == 3){
+    Report <- modelC$Report
+    year_labels = modelC$year_labels
+    years_to_plot = modelC$years_to_plot
+    spatial_list <- modelC$spatial_list
+    name <- "No spatiotemporal variation,\n Habitat & Method covariates"
+  }
+  Array_xct = Report$R1_gcy
+  dimnames(Array_xct) <- list(Node = 1:dim(Array_xct)[1], Category = "Longfin eels", Year = year_labels)
+  xct <- reshape2::melt(Array_xct) %>% mutate(Model = name)
+  xctll <- full_join(xct, cbind.data.frame("Node" = 1:spatial_list$n_g,spatial_list$latlon_g))
+  return(xctll)
+})
+ep <- do.call(rbind, ep_byModel)
+
+plot_ep <- ep %>% filter(Year %in% c(1965, 1995, 2018))
+
+p <- ggplot(plot_ep) +
+  geom_point(aes(x = Lon, y = Lat, color = value), cex = 0.5, alpha = 0.75) +
+  scale_color_distiller(palette = "Spectral") +
+  facet_grid(Year ~ Model) +
+  xlab("Longitude") + ylab("Latitude") +
+  theme_bw(base_size = 14)
+ggsave(file.path(fig_dir, "Compare_encounter_prob_maps.png"), p, height = 10, width = 12)
+
+## effective area occupied
+eao_byModel <- lapply(1:3, function(x){
+  if(x == 1){
+    SD <- TMB::summary.sdreport(modelA$parameter_estimates$SD)
+    TmbData <- modelA$data_list
+    year_labels = modelA$year_labels
+    years_to_plot = modelA$years_to_plot
+    spatial_list <- modelA$spatial_list
+    name <- "Spatiotemporal variation,\n Method covariates"
+  }
+  if(x == 2){
+    SD <- TMB::summary.sdreport(modelB$parameter_estimates$SD)
+    TmbData <- modelB$data_list
+    year_labels = modelB$year_labels
+    years_to_plot = modelB$years_to_plot
+    spatial_list <- modelB$spatial_list
+    name <- "Spatiotemporal variation w/smoother,\nMethod covariates"
+  }
+  if(x == 3){
+    SD <- TMB::summary.sdreport(modelC$parameter_estimates$SD)
+    TmbData <- modelC$data_list
+    year_labels = modelC$year_labels
+    years_to_plot = modelC$years_to_plot
+    spatial_list <- modelC$spatial_list
+    name <- "No spatiotemporal variation,\n Habitat & Method covariates"
+  }
+  EffectiveName = "effective_area_cyl"
+  SD_effective_area_ctl = SD_log_effective_area_ctl = array( NA, dim=c(unlist(TmbData[c('n_c','n_t','n_l')]),2), dimnames=list(NULL,NULL,NULL,c('Estimate','Std. Error')) )
+  use_biascorr = TRUE
+    # Extract estimates
+    SD_effective_area_ctl = SD_log_effective_area_ctl = array( NA, dim=c(unlist(TmbData[c('n_c','n_t','n_l')]),2), dimnames=list(NULL,NULL,NULL,c('Estimate','Std. Error')) )
+    # Effective area
+    if( use_biascorr==TRUE && "unbiased"%in%names(SD) ){
+      SD_effective_area_ctl[] = SD[which(rownames(SD)==EffectiveName),c('Est. (bias.correct)','Std. Error')]
+    }
+    if( !any(is.na(SD_effective_area_ctl)) ){
+      message("Using bias-corrected estimates for effective area occupied (natural scale)...")
+    }else{
+      message("Not using bias-corrected estimates for effective area occupied (natural scale)...")
+      SD_effective_area_ctl[] = SD[which(rownames(SD)==EffectiveName),c('Estimate','Std. Error')]
+    }
+    # Log-Effective area
+    if( use_biascorr==TRUE && "unbiased"%in%names(SD) ){
+      SD_log_effective_area_ctl[] = SD[which(rownames(SD)==paste0("log_",EffectiveName)),c('Est. (bias.correct)','Std. Error')]
+    }
+    if( !any(is.na(SD_log_effective_area_ctl)) ){
+      message("Using bias-corrected estimates for effective area occupied (log scale)...")
+    }else{
+      message("Not using bias-corrected estimates for effective area occupied (log scale)...")
+      SD_log_effective_area_ctl[] = SD[which(rownames(SD)==paste0("log_",EffectiveName)),c('Estimate','Std. Error')]
+    }
+
+  Index_ctl=array(SD_log_effective_area_ctl[,,,'Estimate'],dim(SD_log_effective_area_ctl)[1:3])
+  dimnames(Index_ctl) <- list(Category = "Longfin eel", Year = year_labels, Stratum = NA)
+
+  sd_Index_ctl=array(SD_log_effective_area_ctl[,,,'Std. Error'],dim(SD_log_effective_area_ctl)[1:3])
+  dimnames(sd_Index_ctl) <- list(Category = "Longfin eel", Year = year_labels, Stratum = NA)
+
+  df1 <- reshape2::melt(Index_ctl) %>% rename("Estimate" = value)
+  df2 <- reshape2::melt(sd_Index_ctl) %>% rename("SD" = value)
+  df <- full_join(df1, df2) %>% mutate(Model = name)
+  return(df)
+})
+eao <- do.call(rbind, eao_byModel)
+
+p <- ggplot(eao) +
+  geom_segment(aes(x = Year, xend = Year, y = Estimate - 1.96 * SD, yend = Estimate + 1.96 * SD), color = "red", lwd = 1.2) +
+  geom_point(aes(x = Year, y = Estimate), color = "red", cex = 3) +
+  geom_line(aes(x = Year, y = Estimate), color = "red") +
+  coord_cartesian(ylim = c(0,max(eao$Estimate + 1.96 * eao$SD)*1.01)) +
+  facet_grid(~Model) +
+  ylab("Effective area occupied (km^2)") +
+  theme_bw(base_size = 14)
+ggsave(file.path(fig_dir, "Compare_effective_area_occupied.png"), p, height = 6, width = 14)
+
+### encounter diagnostic
+ep_diag_byModel <- lapply(1:3, function(x){
+  if(x == 1){
+    Report <- modelA$Report
+    name <- "Spatiotemporal variation,\n Method covariates"
+  }
+  if(x == 2){
+    Report <- modelB$Report
+    name <- "Spatiotemporal variation w/smoother,\nMethod covariates"
+  }
+  if(x == 3){
+    Report <- modelC$Report
+    name <- "No spatiotemporal variation,\n Habitat & Method covariates"
+  }
+  # Get bin for each datum
+  cutpoints_z=seq(0,1,length=21)
+  z_i = cut( Report$R1_i, breaks=cutpoints_z, include.lowest=TRUE )
+  midpoints_z = rowMeans( cbind(cutpoints_z[-1],cutpoints_z[-length(cutpoints_z)]) )
+
+  # Get encounter frequency for each bin
+  freq_z = tapply( ifelse(Data_Geostat[,'Catch_KG']>0,1,0), INDEX=z_i, FUN=mean )
+
+  # Get expectation given model
+  num_z = tapply( Report$R1_i, INDEX=z_i, FUN=length )
+  mean_z = tapply( Report$R1_i, INDEX=z_i, FUN=mean )
+  var_z = tapply( Report$R1_i, INDEX=z_i, FUN=function(vec){sum(vec*(1-vec))} )
+  sd_mean_z = sqrt(var_z / num_z^2)
+
+  df_z <- data.frame('midpoint' = midpoints_z, 
+                    'frequency' = freq_z, 
+                    "num" = num_z,
+                    'mean' = mean_z,
+                    'var' = var_z,
+                    'sd_mean' = sd_mean_z,
+                    'Model' = name)
+  return(df_z)
+})
+ep_diag <- do.call(rbind, ep_diag_byModel)
+
+p <- ggplot(ep_diag %>% filter(is.na(frequency) == FALSE)) +
+  geom_ribbon(aes(x = midpoint, ymin = mean - 1.96 * sd_mean, ymax = mean + 1.96 * sd_mean), fill = "red", color = NA, alpha = 0.25) +
+  geom_line(aes(x = midpoint, y = mean), lwd = 1.5, color = "red") +
+  geom_point(aes(x = midpoint, y = frequency), cex = 3) +
+  geom_abline(aes(slope = 1, intercept = 0), lty = 2) +
+  facet_grid(~Model) + 
+  xlab("Observed encounter probability") + ylab("Predicted encounter probability") +
+  theme_bw(base_size = 14)
+ggsave(file.path(fig_dir, "Compare_encounter_diagnostic.png"), p, height = 6, width = 14)
