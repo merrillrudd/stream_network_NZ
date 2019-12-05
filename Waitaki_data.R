@@ -270,9 +270,9 @@ obs_sub3 <- obs_sub2 %>% select('child_i','fishmethod','agency','year',"data_typ
 hab_sub3 <- hab_sub2 %>% select('parent_s','child_s','easting','northing','covariate','value')
 
 
-saveRDS(obs_sub3, file.path(data_dir, "Waitaki_observations_downstreamOnly.rds"))
-saveRDS(network_sub3, file.path(data_dir, "Waitaki_network_downstreamOnly.rds"))
-saveRDS(hab_sub3, file.path(data_dir, "Waitaki_habitat_downstreamOnly.rds"))
+saveRDS(obs_sub3, file.path(data_dir2, "Waitaki_observations_downstreamOnly.rds"))
+saveRDS(network_sub3, file.path(data_dir2, "Waitaki_network_downstreamOnly.rds"))
+saveRDS(hab_sub3, file.path(data_dir2, "Waitaki_habitat_downstreamOnly.rds"))
 
 		l2 <- lapply(1:nrow(network_sub3), function(x){
 			parent <- network_sub3$parent_s[x]
@@ -299,7 +299,7 @@ nz_waitaki_longfin_eel_downstream <- list()
 nz_waitaki_longfin_eel_downstream$observations <- obs_sub3
 nz_waitaki_longfin_eel_downstream$network <- network_sub3
 nz_waitaki_longfin_eel_downstream$habitat <- hab_sub3
-save(nz_waitaki_longfin_eel_downstream, file=file.path(data_dir, "nz_waitaki_longfin_eel_downstream.rda"))
+save(nz_waitaki_longfin_eel_downstream, file=file.path(data_dir2, "nz_waitaki_longfin_eel_downstream.rda"))
 
 
 
